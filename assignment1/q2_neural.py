@@ -8,6 +8,14 @@ from q2_sigmoid import sigmoid, sigmoid_grad
 from q2_gradcheck import gradcheck_naive
 
 
+def cross_entropy(x, y):
+    assert x.shape == y.shape
+    # assume that predictions and labels are the columns of x and y
+    # assume that either x or y is one hot - so log is applied after
+    #   dot product and this operation becomes communative
+    return [np.log(x[:, ci].T.dot(y[:, ci])) for ci in range(0, x.shape[1])]
+
+
 def forward_backward_prop(data, labels, params, dimensions):
     """
     Forward and backward propagation for a two-layer sigmoidal network
@@ -27,20 +35,36 @@ def forward_backward_prop(data, labels, params, dimensions):
     ofs = 0
     Dx, H, Dy = (dimensions[0], dimensions[1], dimensions[2])
 
-    W1 = np.reshape(params[ofs:ofs+ Dx * H], (Dx, H))
+    # W1 = np.reshape(params[ofs:ofs + Dx * H], (Dx, H))
+    # ofs += Dx * H
+    # b1 = np.reshape(params[ofs:ofs + H], (1, H))
+    # ofs += H
+    # W2 = np.reshape(params[ofs:ofs + H * Dy], (H, Dy))
+    # ofs += H * Dy
+    # b2 = np.reshape(params[ofs:ofs + Dy], (1, Dy))
+
+    W1 = np.reshape(params[ofs:ofs + Dx * H], (H, Dx))
     ofs += Dx * H
-    b1 = np.reshape(params[ofs:ofs + H], (1, H))
+    b1 = np.reshape(params[ofs:ofs + H], (H, 1))
     ofs += H
-    W2 = np.reshape(params[ofs:ofs + H * Dy], (H, Dy))
+    W2 = np.reshape(params[ofs:ofs + H * Dy], (Dy, H))
     ofs += H * Dy
-    b2 = np.reshape(params[ofs:ofs + Dy], (1, Dy))
+    b2 = np.reshape(params[ofs:ofs + Dy], (Dy, 1))
+    data = data.T # now each column is a training example
+    labels = labels.T # now each column is label vector
+
 
     ### YOUR CODE HERE: forward propagation
-    raise NotImplementedError
+    a1 = data
+    z2 = W1.dot(a1) + b1
+    a2 = sigmoid(z2)
+    z3 = W2.dot(a2) + b2
+    a3 = softmax(z3)
+    cost = cross_entropy(labels, a3)
     ### END YOUR CODE
 
     ### YOUR CODE HERE: backward propagation
-    raise NotImplementedError
+    delta3 = np.identity().dot()
     ### END YOUR CODE
 
     ### Stack gradients (do not modify)
@@ -55,7 +79,7 @@ def sanity_check():
     Set up fake data and parameters for the neural network, and test using
     gradcheck.
     """
-    print "Running sanity check..."
+    print("Running sanity check...")
 
     N = 20
     dimensions = [10, 5, 10]
@@ -78,7 +102,7 @@ def your_sanity_checks():
     This function will not be called by the autograder, nor will
     your additional tests be graded.
     """
-    print "Running your sanity checks..."
+    print("Running your sanity checks...")
     ### YOUR CODE HERE
     raise NotImplementedError
     ### END YOUR CODE
