@@ -60,11 +60,23 @@ def forward_backward_prop(data, labels, params, dimensions):
     a2 = sigmoid(z2)
     z3 = W2.dot(a2) + b2
     a3 = softmax(z3)
-    cost = cross_entropy(labels, a3)
+    cost = np.mean(cross_entropy(labels, a3))
     ### END YOUR CODE
 
     ### YOUR CODE HERE: backward propagation
-    delta3 = np.identity().dot()
+    delta3 = (labels - a3)
+    gradb2 = np.mean(delta3,axis=0)
+    gradW2 = np.mean(
+        np.array([delta3[:, ci].dot(a2[:, ci].T)
+                 for ci in range(delta3.shape[1])]),
+        axis=0)
+    delta2 = (delta3.dot(W2)) * sigmoid_grad(z2)
+    gradb1 = np.mean(delta2,axis=0)
+    gradW1 = np.mean(
+        np.array([delta2[:, ci].dot(a2[:, ci].T)
+                 for ci in range(delta2.shape[1])]),
+        axis=0)
+
     ### END YOUR CODE
 
     ### Stack gradients (do not modify)
