@@ -15,7 +15,8 @@ def normalizeRows(x):
     """
 
     ### YOUR CODE HERE
-    raise NotImplementedError
+    xRowN = (x**2).sum(axis=1)**(0.5)
+    x = (x.T / xRowN).T
     ### END YOUR CODE
 
     return x
@@ -27,7 +28,7 @@ def test_normalize_rows():
     print(x)
     ans = np.array([[0.6,0.8],[0.4472136,0.89442719]])
     assert np.allclose(x, ans, rtol=1e-05, atol=1e-06)
-    print ""
+    print("")
 
 
 def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
@@ -58,7 +59,15 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     """
 
     ### YOUR CODE HERE
-    raise NotImplementedError
+    U = outputVectors
+    o = target
+    y = np.zeros(U.shape[0]); y[o] = 1
+    u_o = U[o, :]
+    v_c = predicted
+    yhat = softmax(U.dot(v_c))
+    cost = -y.T.dot(np.log(yhat))
+    gradPred = U.T.dot(yhat - y)
+    grad = v_c.reshape(-1, 1).dot(yhat.reshape(1, -1) - y).T
     ### END YOUR CODE
 
     return cost, gradPred, grad
@@ -68,7 +77,7 @@ def getNegativeSamples(target, dataset, K):
     """ Samples K indexes which are not the target """
 
     indices = [None] * K
-    for k in xrange(K):
+    for k in range(K):
         newidx = dataset.sampleTokenIdx()
         while newidx == target:
             newidx = dataset.sampleTokenIdx()
@@ -96,7 +105,23 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
     indices.extend(getNegativeSamples(target, dataset, K))
 
     ### YOUR CODE HERE
-    raise NotImplementedError
+    U = outputVectors
+    o = target
+    y = np.zeros(U.shape[0]); y[o] = 1
+    u_o = U[o, :]
+    v_c = predicted
+
+    cost = (-np.log(sigmoid(u_o.T.dot(v_c))) -
+            sum(np.log(sigmoid(-U[k, :].T.dot(v_c))) for k in indices))
+
+    gradPred = (-u_o * (1 - sigmoid(u_o.T.dot(v_c))) +
+                np.array([U[k, :] * (1 - sigmoid(-U[k, :].T.dot(v_c)))
+                          for k in indices]).sum(axis=0))
+
+    grad = np.zeros(outputVectors.shape)
+    grad[o, :] += -v_c * (1 - sigmoid(u_o.T.dot(v_c)))
+    for k in indices:
+        grad[k, :] += v_c * (1 - sigmoid(-U[k, :].T.dot(v_c)))
     ### END YOUR CODE
 
     return cost, gradPred, grad
@@ -131,7 +156,25 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     gradOut = np.zeros(outputVectors.shape)
 
     ### YOUR CODE HERE
-    raise NotImplementedError
+    centerIdx = tokens[currentWord]
+    for contextWord in contextWords:
+        subCost, gradPred, grad = word2vecCostAndGradient(
+                                    inputVectors[centerIdx],
+                                    tokens[contextWord],
+                                    outputVectors, dataset)
+        cost += subCost
+        gradIn[centerIdx, :] += gradPred
+        gradOut += grad
+    ### END YOUR CODE
+
+    ### YOUR CODE HERE
+    for word in contextWords:
+        dcost, dgradIn, dgradOut = word2vecCostAndGradient(inputVectors[tokens[currentWord]],tokens[word],outputVectors,dataset)
+        # print "dgradin"
+        # print np.shape(dgradIn)
+        cost += dcost
+        gradIn[tokens[currentWord]] += dgradIn
+        gradOut += dgradOut
     ### END YOUR CODE
 
     return cost, gradIn, gradOut
@@ -155,7 +198,7 @@ def cbow(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     gradOut = np.zeros(outputVectors.shape)
 
     ### YOUR CODE HERE
-    raise NotImplementedError
+    # raise NotImplementedError
     ### END YOUR CODE
 
     return cost, gradIn, gradOut
@@ -171,9 +214,10 @@ def word2vec_sgd_wrapper(word2vecModel, tokens, wordVectors, dataset, C,
     cost = 0.0
     grad = np.zeros(wordVectors.shape)
     N = wordVectors.shape[0]
-    inputVectors = wordVectors[:N/2,:]
-    outputVectors = wordVectors[N/2:,:]
-    for i in xrange(batchsize):
+    inputVectors = wordVectors[:int(N/2), :]
+    outputVectors = wordVectors[int(N/2):, :]
+    # print(len(inputVectors), len(outputVectors), len(wordVectors))
+    for i in range(batchsize):
         C1 = random.randint(1,C)
         centerword, context = dataset.getRandomContext(C1)
 
@@ -186,8 +230,8 @@ def word2vec_sgd_wrapper(word2vecModel, tokens, wordVectors, dataset, C,
             centerword, C1, context, tokens, inputVectors, outputVectors,
             dataset, word2vecCostAndGradient)
         cost += c / batchsize / denom
-        grad[:N/2, :] += gin / batchsize / denom
-        grad[N/2:, :] += gout / batchsize / denom
+        grad[:int(N/2), :] += gin / batchsize / denom
+        grad[int(N/2):, :] += gout / batchsize / denom
 
     return cost, grad
 
@@ -201,7 +245,7 @@ def test_word2vec():
     def getRandomContext(C):
         tokens = ["a", "b", "c", "d", "e"]
         return tokens[random.randint(0,4)], \
-            [tokens[random.randint(0,4)] for i in xrange(2*C)]
+            [tokens[random.randint(0,4)] for i in range(2*C)]
     dataset.sampleTokenIdx = dummySampleTokenIdx
     dataset.getRandomContext = getRandomContext
 

@@ -28,7 +28,6 @@ def softmax(x):
     """
     orig_shape = x.shape
 
-    print(x)
     if len(x.shape) > 1:
         # Matrix
         ### YOUR CODE HERE
@@ -43,7 +42,6 @@ def softmax(x):
         x = np.exp(x)
         x = x / sum(x)
         ### END YOUR CODE
-    print(x)
 
     assert x.shape == orig_shape
     return x
